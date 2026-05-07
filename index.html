@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Swiss + Double-Elim Tournament Generator</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #1f232c;
+    --line: #2a2f3a;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #7c9cff;
+    --accent-2: #5dd2a4;
+    --warn: #f0b86b;
+    --bye: #4a4f5c;
+    --win: #5dd2a4;
+    --loss: #ef6f6c;
+    --draw: #9aa3b2;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { padding: 20px 24px 64px; max-width: 1200px; margin: 0 auto; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  section h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: 0.02em; color: var(--muted); text-transform: uppercase; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  input[type="text"], input[type="number"], textarea {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 14px;
+    min-width: 180px;
+  }
+  textarea { width: 100%; min-height: 120px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  button {
+    background: var(--accent);
+    color: #0b0d12;
+    border: 0;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  button.danger { background: #2a1d1f; color: var(--loss); border: 1px solid #45272a; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.small { padding: 4px 10px; font-size: 12px; }
+  .matches { display: grid; gap: 8px; }
+  .match {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .match .pair { display: grid; grid-template-columns: 1fr 60px 1fr; align-items: center; gap: 8px; }
+  .match .name { font-size: 14px; }
+  .match .name.right { text-align: right; }
+  .match .vs { color: var(--muted); font-size: 12px; text-align: center; }
+  .match .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .match.bye .pair { grid-template-columns: 1fr; }
+  .match.bye .vs { display: none; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel); color: var(--muted); border: 1px solid var(--line); }
+  .badge.win { color: var(--win); border-color: #2a4a3c; background: #14241c; }
+  .badge.loss { color: var(--loss); border-color: #4a2c2c; background: #241616; }
+  .badge.draw { color: var(--draw); }
+  .badge.bye { color: var(--bye); }
+  .standings table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .standings th, .standings td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  .standings th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .standings tr.qualified td:first-child { border-left: 3px solid var(--accent-2); padding-left: 7px; }
+  .player-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .chip button { background: transparent; color: var(--muted); padding: 0; font-size: 14px; line-height: 1; }
+  .chip button:hover { color: var(--loss); }
+  .seed { color: var(--muted); font-size: 11px; }
+  .stage-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tab { padding: 6px 12px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); cursor: pointer; font-size: 13px; }
+  .tab.active { color: var(--text); background: var(--panel); border-color: var(--accent); }
+  .bracket-wrap { display: grid; gap: 24px; }
+  .bracket-cols { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+  .br-col { display: flex; flex-direction: column; gap: 12px; min-width: 220px; }
+  .br-col h3 { margin: 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .br-match {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    display: grid;
+    gap: 6px;
+    flex: 1;
+    justify-content: stretch;
+  }
+  .br-slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+  .br-slot.winner { background: #14241c; color: var(--win); }
+  .br-slot.loser { color: var(--muted); text-decoration: line-through; }
+  .br-slot .pname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .br-slot button { padding: 2px 6px; font-size: 11px; }
+  .br-match.pending { border-color: #3a4254; }
+  .br-match.bye { opacity: 0.6; font-style: italic; }
+  .champion-banner {
+    background: linear-gradient(135deg, #1f3a2c, #14241c);
+    border: 1px solid #2a4a3c;
+    color: var(--win);
+    padding: 18px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .empty { color: var(--muted); font-style: italic; padding: 8px; }
+  .tag-bracket { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--panel); color: var(--muted); border: 1px solid var(--line); margin-left: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 id="title">Swiss + Double-Elim Tournament Generator</h1>
+    <div class="sub">3-round Swiss group stage feeds top-N seeds into a double-elimination playoff. Byes handled automatically.</div>
+  </div>
+  <div class="toolbar">
+    <button class="secondary small" id="btn-export">Export JSON</button>
+    <button class="secondary small" id="btn-import">Import JSON</button>
+    <button class="danger small" id="btn-reset">Reset</button>
+  </div>
+</header>
+<main>
+  <section id="setup-section">
+    <h2>Setup</h2>
+    <div class="row">
+      <div class="field">
+        <label for="t-name">Tournament name</label>
+        <input type="text" id="t-name" value="Spring Cup" />
+      </div>
+      <div class="field">
+        <label for="t-rounds">Swiss rounds</label>
+        <input type="number" id="t-rounds" value="3" min="1" max="9" />
+      </div>
+      <div class="field">
+        <label for="t-advance">Advance to bracket</label>
+        <input type="number" id="t-advance" value="8" min="2" />
+      </div>
+      <div class="field">
+        <label><input type="checkbox" id="t-reset-final" checked /> Grand-final reset</label>
+      </div>
+    </div>
+    <div style="margin-top: 14px;">
+      <div class="field">
+        <label for="players-input">Players (one per line, optional <code>seed,name</code>)</label>
+        <textarea id="players-input" placeholder="Alice
+Bob
+Carol
+Dave
+Eve
+Frank
+Grace
+Henry
+Iris"></textarea>
+      </div>
+      <div class="row" style="margin-top: 8px;">
+        <button id="btn-start">Start tournament</button>
+        <button class="secondary" id="btn-shuffle">Shuffle order</button>
+        <button class="secondary" id="btn-fill" type="button">Fill 9 demo players</button>
+      </div>
+      <div class="player-list" id="player-preview"></div>
+    </div>
+  </section>
+
+  <section id="swiss-section" hidden>
+    <h2>Swiss stage <span id="swiss-progress" class="badge"></span></h2>
+    <div id="swiss-rounds"></div>
+    <div class="row" style="margin-top: 12px;">
+      <button id="btn-pair-next">Pair next round</button>
+      <button class="secondary" id="btn-random-fill">Randomize pending results</button>
+    </div>
+    <div class="standings" style="margin-top: 18px;">
+      <h2>Standings</h2>
+      <table id="standings-table"></table>
+    </div>
+    <div class="row" style="margin-top: 12px;">
+      <button id="btn-start-bracket" disabled>Start playoffs bracket</button>
+    </div>
+  </section>
+
+  <section id="bracket-section" hidden>
+    <h2>Double-elimination playoffs</h2>
+    <div id="champion-area"></div>
+    <div class="bracket-wrap">
+      <div>
+        <h3 style="color: var(--muted); margin: 0 0 8px;">Winners bracket</h3>
+        <div id="wb-cols" class="bracket-cols"></div>
+      </div>
+      <div>
+        <h3 style="color: var(--muted); margin: 0 0 8px;">Losers bracket</h3>
+        <div id="lb-cols" class="bracket-cols"></div>
+      </div>
+      <div>
+        <h3 style="color: var(--muted); margin: 0 0 8px;">Grand final</h3>
+        <div id="gf-col" class="bracket-cols"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top: 12px;">
+      <button class="secondary" id="btn-bracket-randomize">Randomize pending results</button>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// ---------- Domain model ----------
+
+const RESULT = Object.freeze({
+  PENDING: "pending",
+  P1_WIN:  "p1_win",
+  P2_WIN:  "p2_win",
+  DRAW:    "draw",
+  BYE:     "bye",
+});
+
+function uid(prefix) {
+  return prefix + "-" + Math.random().toString(36).slice(2, 9);
+}
+
+class Player {
+  constructor(id, name, seed = 0) {
+    this.id = id;
+    this.name = name;
+    this.seed = seed;
+  }
+}
+
+class Match {
+  constructor({ id, round, p1, p2, bracket = "swiss", result = RESULT.PENDING }) {
+    this.id = id;
+    this.round = round;
+    this.p1 = p1;
+    this.p2 = p2;
+    this.bracket = bracket;
+    this.result = result;
+  }
+  get isBye() { return !this.p1 || !this.p2; }
+  get winner() {
+    if (this.result === RESULT.BYE) return this.p1 || this.p2;
+    if (this.result === RESULT.P1_WIN) return this.p1;
+    if (this.result === RESULT.P2_WIN) return this.p2;
+    return null;
+  }
+  get loser() {
+    if (this.result === RESULT.BYE) return null;
+    if (this.result === RESULT.P1_WIN) return this.p2;
+    if (this.result === RESULT.P2_WIN) return this.p1;
+    return null;
+  }
+}
+
+// ---------- Swiss ----------
+
+class SwissStage {
+  constructor(players, { rounds = 3, advance = null, name = "Swiss" } = {}) {
+    if (players.length < 2) throw new Error("Swiss needs at least two players");
+    if (rounds < 1) throw new Error("Swiss needs at least one round");
+    this.players = players.slice();
+    this.numRounds = rounds;
+    this.advance = advance;
+    this.name = name;
+    this.rounds = []; // [{number, label, matches}]
+    this.standings = new Map();
+    for (const p of players) {
+      this.standings.set(p.id, {
+        player: p, points: 0, wins: 0, losses: 0, draws: 0,
+        byes: 0, opponents: [], hadBye: false,
+      });
+    }
+  }
+
+  get complete() {
+    return this.rounds.length === this.numRounds &&
+      this.rounds.every(r => r.matches.every(m => m.result !== RESULT.PENDING));
+  }
+
+  pairNextRound() {
+    if (this.rounds.length >= this.numRounds) throw new Error("All Swiss rounds paired");
+    if (this.rounds.length > 0) {
+      const last = this.rounds[this.rounds.length - 1];
+      if (last.matches.some(m => m.result === RESULT.PENDING))
+        throw new Error("Previous round must be reported first");
+    }
+    const roundNo = this.rounds.length + 1;
+    const { pairs, byePlayer } = roundNo === 1 ? this._firstRound() : this._subsequentRound();
+    const matches = pairs.map((pair, idx) => new Match({
+      id: `${this.name}-R${roundNo}-M${idx + 1}`,
+      round: roundNo,
+      p1: pair[0],
+      p2: pair[1],
+      bracket: "swiss",
+    }));
+    if (byePlayer) {
+      matches.push(new Match({
+        id: `${this.name}-R${roundNo}-BYE`,
+        round: roundNo,
+        p1: byePlayer,
+        p2: null,
+        bracket: "swiss",
+        result: RESULT.BYE,
+      }));
+      this._applyBye(byePlayer);
+    }
+    const round = { number: roundNo, label: `Swiss Round ${roundNo}`, matches };
+    this.rounds.push(round);
+    return round;
+  }
+
+  reportMatch(match, result) {
+    if (match.isBye) {
+      if (result !== RESULT.BYE) throw new Error("Bye match must use BYE result");
+      match.result = RESULT.BYE;
+      return;
+    }
+    match.result = result;
+    const s1 = this.standings.get(match.p1.id);
+    const s2 = this.standings.get(match.p2.id);
+    s1.opponents.push(match.p2);
+    s2.opponents.push(match.p1);
+    if (result === RESULT.P1_WIN) { s1.points += 1; s1.wins += 1; s2.losses += 1; }
+    else if (result === RESULT.P2_WIN) { s2.points += 1; s2.wins += 1; s1.losses += 1; }
+    else if (result === RESULT.DRAW) { s1.points += 0.5; s2.points += 0.5; s1.draws += 1; s2.draws += 1; }
+    else throw new Error("Bad swiss result " + result);
+  }
+
+  _omw(standing) {
+    if (!standing.opponents.length) return 0;
+    let total = 0;
+    for (const opp of standing.opponents) {
+      const s = this.standings.get(opp.id);
+      const played = s.wins + s.losses + s.draws;
+      total += played === 0 ? 0 : s.points / played;
+    }
+    return total / standing.opponents.length;
+  }
+
+  rankedStandings() {
+    const rows = [...this.standings.values()];
+    rows.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const oa = this._omw(a), ob = this._omw(b);
+      if (ob !== oa) return ob - oa;
+      const sa = a.player.seed || 9999, sb = b.player.seed || 9999;
+      if (sa !== sb) return sa - sb;
+      return a.player.name.localeCompare(b.player.name);
+    });
+    return rows;
+  }
+
+  qualifiers() {
+    const ranked = this.rankedStandings().map(s => s.player);
+    return this.advance == null ? ranked : ranked.slice(0, this.advance);
+  }
+
+  _firstRound() {
+    const seeded = this.players.slice().sort((a, b) => {
+      const sa = a.seed || 9999, sb = b.seed || 9999;
+      if (sa !== sb) return sa - sb;
+      return a.name.localeCompare(b.name);
+    });
+    let byePlayer = null;
+    let working = seeded;
+    if (working.length % 2 === 1) {
+      byePlayer = working[working.length - 1];
+      working = working.slice(0, -1);
+    }
+    const half = working.length / 2;
+    const pairs = [];
+    for (let i = 0; i < half; i++) pairs.push([working[i], working[i + half]]);
+    return { pairs, byePlayer };
+  }
+
+  _subsequentRound() {
+    let ranked = this.rankedStandings();
+    let byePlayer = null;
+    if (ranked.length % 2 === 1) {
+      byePlayer = this._pickBye(ranked).player;
+      ranked = ranked.filter(s => s.player.id !== byePlayer.id);
+    }
+    const groups = new Map();
+    for (const s of ranked) {
+      const key = s.points;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(s);
+    }
+    const sortedKeys = [...groups.keys()].sort((a, b) => b - a);
+    const ordered = sortedKeys.flatMap(k => groups.get(k));
+
+    const played = new Set();
+    for (const s of ordered) {
+      for (const opp of s.opponents) played.add(this._pairKey(s.player.id, opp.id));
+    }
+
+    const result = [];
+    const tryPair = (remaining) => {
+      if (!remaining.length) return true;
+      const head = remaining[0];
+      for (let i = 1; i < remaining.length; i++) {
+        const cand = remaining[i];
+        if (played.has(this._pairKey(head.player.id, cand.player.id))) continue;
+        result.push([head, cand]);
+        const next = remaining.slice(1, i).concat(remaining.slice(i + 1));
+        if (tryPair(next)) return true;
+        result.pop();
+      }
+      return false;
+    };
+
+    let pairs;
+    if (tryPair(ordered)) {
+      pairs = result.map(([a, b]) => [a.player, b.player]);
+    } else {
+      pairs = [];
+      for (let i = 0; i < ordered.length; i += 2) pairs.push([ordered[i].player, ordered[i + 1].player]);
+    }
+    return { pairs, byePlayer };
+  }
+
+  _pickBye(ranked) {
+    for (let i = ranked.length - 1; i >= 0; i--) {
+      if (!ranked[i].hadBye) return ranked[i];
+    }
+    return ranked[ranked.length - 1];
+  }
+
+  _pairKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
+
+  _applyBye(player) {
+    const s = this.standings.get(player.id);
+    s.points += 1;
+    s.byes += 1;
+    s.hadBye = true;
+  }
+}
+
+// ---------- Double elimination ----------
+
+function nextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+
+function seedOrder(size) {
+  if (size < 1 || (size & (size - 1)) !== 0) throw new Error("size must be power of two");
+  let order = [1, 2];
+  while (order.length < size) {
+    const n = order.length * 2;
+    const next = [];
+    for (const s of order) { next.push(s); next.push(n + 1 - s); }
+    order = next;
+  }
+  return order;
+}
+
+class DoubleEliminationStage {
+  constructor(players, { name = "Bracket", grandFinalReset = true } = {}) {
+    if (players.length < 2) throw new Error("Bracket needs at least two players");
+    this.players = players.slice();
+    this.name = name;
+    this.grandFinalReset = grandFinalReset;
+    this.size = nextPow2(players.length);
+    this.wb = []; // wb[round] = [matches]
+    this.lb = [];
+    this.gf = null;
+    this.gfReset = null;
+    this._counter = 0;
+    this._build();
+  }
+
+  champion() {
+    if (this.gfReset && this.gfReset.result !== RESULT.PENDING && this.gfReset.winner) {
+      return this.gfReset.winner;
+    }
+    if (this.gf && this.gf.result !== RESULT.PENDING && this.gf.winner) {
+      const wbWinner = this._wbFinalWinner();
+      if (this.gf.winner === wbWinner) return wbWinner;
+      if (!this.grandFinalReset) return this.gf.winner;
+    }
+    return null;
+  }
+
+  reportMatch(match, result) {
+    match.result = result;
+    this._propagate(match);
+  }
+
+  _newId(label) { this._counter += 1; return `${this.name}-${label}-${this._counter}`; }
+
+  _build() {
+    const slots = this._seedSlots();
+    this._buildWinners(slots);
+    this._buildLosers();
+    this._buildGrandFinal();
+    // Auto-advance round-1 byes
+    for (const m of this.wb[0]) {
+      if (m.result === RESULT.BYE) this._propagate(m);
+    }
+  }
+
+  _seedSlots() {
+    const order = seedOrder(this.size);
+    const seeded = this.players.slice().sort((a, b) => {
+      const sa = a.seed || 9999, sb = b.seed || 9999;
+      if (sa !== sb) return sa - sb;
+      return a.name.localeCompare(b.name);
+    });
+    return order.map(pos => {
+      const idx = pos - 1;
+      return idx < seeded.length ? { player: seeded[idx], isBye: false } : { player: null, isBye: true };
+    });
+  }
+
+  _buildWinners(slots) {
+    const r1 = [];
+    for (let i = 0; i < slots.length; i += 2) {
+      const a = slots[i], b = slots[i + 1];
+      let p1 = null, p2 = null, result = RESULT.PENDING;
+      if (a.isBye && b.isBye) result = RESULT.BYE;
+      else if (a.isBye) { p1 = b.player; result = RESULT.BYE; }
+      else if (b.isBye) { p1 = a.player; result = RESULT.BYE; }
+      else { p1 = a.player; p2 = b.player; }
+      r1.push(new Match({ id: this._newId("WB-R1"), round: 1, p1, p2, bracket: "winners", result }));
+    }
+    this.wb.push(r1);
+    let prev = r1, roundNo = 2;
+    while (prev.length > 1) {
+      const next = [];
+      for (let i = 0; i < prev.length / 2; i++) {
+        next.push(new Match({ id: this._newId(`WB-R${roundNo}`), round: roundNo, p1: null, p2: null, bracket: "winners" }));
+      }
+      this.wb.push(next);
+      prev = next;
+      roundNo += 1;
+    }
+  }
+
+  _buildLosers() {
+    const wb1Size = this.wb[0].length;
+    if (wb1Size < 2) return;
+    let lbRoundNo = 1;
+    const first = [];
+    for (let i = 0; i < wb1Size / 2; i++) {
+      first.push(new Match({ id: this._newId(`LB-R${lbRoundNo}`), round: lbRoundNo, p1: null, p2: null, bracket: "losers" }));
+    }
+    this.lb.push(first);
+
+    let wbRoundIdx = 1;
+    let prevSize = first.length;
+    while (prevSize > 1 || wbRoundIdx < this.wb.length) {
+      lbRoundNo += 1;
+      const consolidation = [];
+      for (let i = 0; i < prevSize; i++) {
+        consolidation.push(new Match({ id: this._newId(`LB-R${lbRoundNo}`), round: lbRoundNo, p1: null, p2: null, bracket: "losers" }));
+      }
+      this.lb.push(consolidation);
+      wbRoundIdx += 1;
+      if (consolidation.length > 1) {
+        lbRoundNo += 1;
+        const mergeSize = consolidation.length / 2;
+        const merge = [];
+        for (let i = 0; i < mergeSize; i++) {
+          merge.push(new Match({ id: this._newId(`LB-R${lbRoundNo}`), round: lbRoundNo, p1: null, p2: null, bracket: "losers" }));
+        }
+        this.lb.push(merge);
+        prevSize = mergeSize;
+      } else {
+        prevSize = 1;
+        break;
+      }
+    }
+  }
+
+  _buildGrandFinal() {
+    this.gf = new Match({ id: this._newId("GF"), round: 1, p1: null, p2: null, bracket: "grand_final" });
+    if (this.grandFinalReset) {
+      this.gfReset = new Match({ id: this._newId("GF-RESET"), round: 2, p1: null, p2: null, bracket: "grand_final" });
+    }
+  }
+
+  _propagate(match) {
+    if (match.bracket === "winners") this._propWinners(match);
+    else if (match.bracket === "losers") this._propLosers(match);
+    else this._propGrandFinal(match);
+  }
+
+  _propWinners(match) {
+    const ri = this._wbRoundIdx(match);
+    const mi = this.wb[ri].indexOf(match);
+    const winner = match.winner;
+    const loser = match.loser;
+    if (ri + 1 < this.wb.length) {
+      const target = this.wb[ri + 1][Math.floor(mi / 2)];
+      this._place(target, winner);
+      this._maybeAutoBye(target);
+    } else {
+      this._place(this.gf, winner);
+    }
+    if (this.lb.length) this._dropToLosers(ri, mi, loser);
+  }
+
+  _dropToLosers(wbRoundIdx, wbMatchIdx, loser) {
+    if (wbRoundIdx === 0) {
+      const target = this.lb[0][Math.floor(wbMatchIdx / 2)];
+      this._place(target, loser);
+      this._maybeAutoBye(target);
+      return;
+    }
+    const consolidationIdx = wbRoundIdx * 2 - 1;
+    if (consolidationIdx >= this.lb.length) return;
+    const target = this.lb[consolidationIdx][wbMatchIdx];
+    this._place(target, loser);
+    this._maybeAutoBye(target);
+  }
+
+  _propLosers(match) {
+    const ri = this._lbRoundIdx(match);
+    const mi = this.lb[ri].indexOf(match);
+    const winner = match.winner;
+    if (ri + 1 < this.lb.length) {
+      const nextRound = this.lb[ri + 1];
+      const isConsolidationNext = (ri % 2 === 0);
+      const target = isConsolidationNext ? nextRound[mi] : nextRound[Math.floor(mi / 2)];
+      this._place(target, winner);
+      this._maybeAutoBye(target);
+    } else {
+      this._place(this.gf, winner);
+    }
+  }
+
+  _propGrandFinal(match) {
+    if (match === this.gf && this.gfReset) {
+      const wbWinner = this._wbFinalWinner();
+      if (match.winner !== wbWinner) {
+        this.gfReset.p1 = match.p1;
+        this.gfReset.p2 = match.p2;
+      }
+    }
+  }
+
+  _maybeAutoBye(match) {
+    if (match.result !== RESULT.PENDING) return;
+    if (!match.p1 && !match.p2) return;
+    if (!match.p1 || !match.p2) {
+      match.result = RESULT.BYE;
+      this._propagate(match);
+    }
+  }
+
+  _place(target, player) {
+    if (!target || !player) return;
+    if (!target.p1) target.p1 = player;
+    else if (!target.p2) target.p2 = player;
+  }
+
+  _wbRoundIdx(match) {
+    for (let i = 0; i < this.wb.length; i++) if (this.wb[i].includes(match)) return i;
+    throw new Error("not in wb");
+  }
+  _lbRoundIdx(match) {
+    for (let i = 0; i < this.lb.length; i++) if (this.lb[i].includes(match)) return i;
+    throw new Error("not in lb");
+  }
+  _wbFinalWinner() {
+    if (!this.wb.length) return null;
+    const final = this.wb[this.wb.length - 1];
+    if (!final.length) return null;
+    return final[final.length - 1].winner;
+  }
+
+  allMatches() {
+    const out = [];
+    for (const r of this.wb) out.push(...r);
+    for (const r of this.lb) out.push(...r);
+    if (this.gf) out.push(this.gf);
+    if (this.gfReset) out.push(this.gfReset);
+    return out;
+  }
+}
+
+// ---------- Persistence (state serialization) ----------
+
+const STATE_KEY = "tournament-generator-state-v1";
+
+function serialize() {
+  if (!app.swiss) return null;
+  const swiss = {
+    players: app.swiss.players.map(p => ({ id: p.id, name: p.name, seed: p.seed })),
+    numRounds: app.swiss.numRounds,
+    advance: app.swiss.advance,
+    name: app.swiss.name,
+    rounds: app.swiss.rounds.map(r => ({
+      number: r.number,
+      label: r.label,
+      matches: r.matches.map(m => ({
+        id: m.id, round: m.round, bracket: m.bracket, result: m.result,
+        p1: m.p1 ? m.p1.id : null, p2: m.p2 ? m.p2.id : null,
+      })),
+    })),
+  };
+  let bracket = null;
+  if (app.bracket) {
+    const dump = (m) => m && ({
+      id: m.id, round: m.round, bracket: m.bracket, result: m.result,
+      p1: m.p1 ? m.p1.id : null, p2: m.p2 ? m.p2.id : null,
+    });
+    bracket = {
+      players: app.bracket.players.map(p => ({ id: p.id, name: p.name, seed: p.seed })),
+      name: app.bracket.name,
+      grandFinalReset: app.bracket.grandFinalReset,
+      wb: app.bracket.wb.map(r => r.map(dump)),
+      lb: app.bracket.lb.map(r => r.map(dump)),
+      gf: dump(app.bracket.gf),
+      gfReset: dump(app.bracket.gfReset),
+    };
+  }
+  return {
+    name: app.tournamentName,
+    swiss,
+    bracket,
+  };
+}
+
+function saveState() {
+  try {
+    const s = serialize();
+    if (s) localStorage.setItem(STATE_KEY, JSON.stringify(s));
+  } catch (e) { /* localStorage might be unavailable */ }
+}
+
+function clearState() {
+  try { localStorage.removeItem(STATE_KEY); } catch (e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    return restoreState(data);
+  } catch (e) { return false; }
+}
+
+function restoreState(data) {
+  if (!data || !data.swiss) return false;
+  const sd = data.swiss;
+  const players = sd.players.map(p => new Player(p.id, p.name, p.seed));
+  const swiss = new SwissStage(players, { rounds: sd.numRounds, advance: sd.advance, name: sd.name });
+  const idMap = new Map(players.map(p => [p.id, p]));
+  // Replay rounds: fabricate the rounds and rebuild standings
+  for (const r of sd.rounds) {
+    // Build matches manually instead of pairing, since pairings are already fixed
+    const matches = r.matches.map(m => new Match({
+      id: m.id, round: m.round, bracket: m.bracket,
+      p1: m.p1 ? idMap.get(m.p1) : null,
+      p2: m.p2 ? idMap.get(m.p2) : null,
+      result: RESULT.PENDING,
+    }));
+    swiss.rounds.push({ number: r.number, label: r.label, matches });
+    // Apply byes first so points reflect them
+    for (let i = 0; i < matches.length; i++) {
+      const recorded = r.matches[i];
+      const m = matches[i];
+      if (m.isBye) {
+        m.result = RESULT.BYE;
+        if (m.p1) swiss._applyBye(m.p1);
+      }
+    }
+    // Then apply non-bye reported results
+    for (let i = 0; i < matches.length; i++) {
+      const recorded = r.matches[i];
+      const m = matches[i];
+      if (!m.isBye && recorded.result !== RESULT.PENDING) swiss.reportMatch(m, recorded.result);
+    }
+  }
+  app.tournamentName = data.name || "Tournament";
+  app.swiss = swiss;
+
+  if (data.bracket) {
+    const bd = data.bracket;
+    const bplayers = bd.players.map(p => new Player(p.id, p.name, p.seed));
+    const bidMap = new Map(bplayers.map(p => [p.id, p]));
+    const bracket = new DoubleEliminationStage(bplayers, { name: bd.name, grandFinalReset: bd.grandFinalReset });
+    // Replace freshly-built matches with stored ones, preserving structure
+    const restoreMatch = (target, src) => {
+      if (!src) return;
+      target.id = src.id;
+      target.p1 = src.p1 ? bidMap.get(src.p1) : null;
+      target.p2 = src.p2 ? bidMap.get(src.p2) : null;
+      target.result = src.result;
+    };
+    for (let r = 0; r < bracket.wb.length; r++)
+      for (let i = 0; i < bracket.wb[r].length; i++)
+        restoreMatch(bracket.wb[r][i], bd.wb[r] && bd.wb[r][i]);
+    for (let r = 0; r < bracket.lb.length; r++)
+      for (let i = 0; i < bracket.lb[r].length; i++)
+        restoreMatch(bracket.lb[r][i], bd.lb[r] && bd.lb[r][i]);
+    restoreMatch(bracket.gf, bd.gf);
+    if (bracket.gfReset) restoreMatch(bracket.gfReset, bd.gfReset);
+    app.bracket = bracket;
+  }
+  return true;
+}
+
+// ---------- App / UI ----------
+
+const app = {
+  tournamentName: "Spring Cup",
+  swiss: null,
+  bracket: null,
+};
+
+const $ = (sel) => document.querySelector(sel);
+const el = (tag, attrs = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k === "html") node.innerHTML = v;
+    else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
+    else if (v === true) node.setAttribute(k, "");
+    else if (v === false || v == null) {}
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) {
+    if (c == null) continue;
+    if (Array.isArray(c)) c.forEach(x => node.appendChild(typeof x === "string" ? document.createTextNode(x) : x));
+    else node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return node;
+};
+
+function parsePlayers(text) {
+  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const out = [];
+  lines.forEach((line, idx) => {
+    let seed = 0, name = line;
+    const m = /^(\d+)[\s,]\s*(.+)$/.exec(line);
+    if (m) { seed = parseInt(m[1], 10); name = m[2].trim(); }
+    out.push(new Player(uid("p"), name, seed || idx + 1));
+  });
+  return out;
+}
+
+function renderPlayerPreview() {
+  const text = $("#players-input").value;
+  const players = parsePlayers(text);
+  const wrap = $("#player-preview");
+  wrap.innerHTML = "";
+  if (!players.length) {
+    wrap.appendChild(el("div", { class: "empty" }, "No players yet."));
+  } else {
+    players.forEach(p => {
+      wrap.appendChild(el("span", { class: "chip" },
+        el("span", { class: "seed" }, "#" + p.seed),
+        " ",
+        p.name));
+    });
+  }
+  // adjust advance default to clamp
+  const advanceInput = $("#t-advance");
+  const advance = parseInt(advanceInput.value, 10);
+  if (players.length > 0 && advance > players.length) advanceInput.value = players.length;
+}
+
+function renderAll() {
+  renderSwiss();
+  renderBracket();
+  saveState();
+}
+
+function renderSwiss() {
+  const sec = $("#swiss-section");
+  if (!app.swiss) { sec.hidden = true; return; }
+  sec.hidden = false;
+  const progress = $("#swiss-progress");
+  progress.textContent = `${app.swiss.rounds.length}/${app.swiss.numRounds} rounds`;
+
+  const container = $("#swiss-rounds");
+  container.innerHTML = "";
+  app.swiss.rounds.forEach(round => container.appendChild(renderSwissRound(round)));
+
+  const lastReady = app.swiss.rounds.length === 0 ||
+    app.swiss.rounds[app.swiss.rounds.length - 1].matches.every(m => m.result !== RESULT.PENDING);
+  $("#btn-pair-next").disabled = !lastReady || app.swiss.rounds.length >= app.swiss.numRounds;
+  $("#btn-start-bracket").disabled = !app.swiss.complete || !!app.bracket;
+
+  const tbody = $("#standings-table");
+  tbody.innerHTML = "";
+  const head = el("thead", {}, el("tr", {},
+    el("th", {}, "#"), el("th", {}, "Player"),
+    el("th", {}, "Pts"), el("th", {}, "W-L-D"),
+    el("th", {}, "Byes"), el("th", {}, "OMW%"),
+  ));
+  tbody.appendChild(head);
+  const body = el("tbody");
+  const ranked = app.swiss.rankedStandings();
+  const advance = app.swiss.advance ?? ranked.length;
+  ranked.forEach((s, idx) => {
+    const omw = (app.swiss._omw(s) * 100).toFixed(1) + "%";
+    const tr = el("tr", { class: idx < advance ? "qualified" : "" },
+      el("td", {}, String(idx + 1)),
+      el("td", {}, s.player.name),
+      el("td", {}, String(s.points)),
+      el("td", {}, `${s.wins}-${s.losses}-${s.draws}`),
+      el("td", {}, String(s.byes)),
+      el("td", {}, omw),
+    );
+    body.appendChild(tr);
+  });
+  tbody.appendChild(body);
+}
+
+function renderSwissRound(round) {
+  const wrap = el("div", { style: "margin-bottom: 14px;" });
+  wrap.appendChild(el("h3", { style: "margin: 8px 0; font-size: 13px; color: var(--muted);" }, round.label));
+  const matches = el("div", { class: "matches" });
+  round.matches.forEach(m => matches.appendChild(renderMatch(m, () => {
+    app.swiss.reportMatch(m, RESULT.P1_WIN); renderAll();
+  }, () => {
+    app.swiss.reportMatch(m, RESULT.P2_WIN); renderAll();
+  }, () => {
+    app.swiss.reportMatch(m, RESULT.DRAW); renderAll();
+  })));
+  wrap.appendChild(matches);
+  return wrap;
+}
+
+function renderMatch(m, onP1, onP2, onDraw) {
+  if (m.isBye) {
+    return el("div", { class: "match bye" },
+      el("div", { class: "pair" },
+        el("div", { class: "name" }, (m.p1 ? m.p1.name : "—") + " ", el("span", { class: "badge bye" }, "BYE"))
+      ),
+    );
+  }
+  const w = m.winner;
+  const isP1Winner = w && w.id === m.p1.id;
+  const isP2Winner = w && w.id === m.p2.id;
+  const isDraw = m.result === RESULT.DRAW;
+  const p1Class = "name" + (isP1Winner ? " winner" : isP2Winner ? " loser" : "");
+  const p2Class = "name right" + (isP2Winner ? " winner" : isP1Winner ? " loser" : "");
+  const actions = el("div", { class: "actions" });
+  if (m.result === RESULT.PENDING) {
+    actions.appendChild(el("button", { class: "small", onclick: onP1 }, "P1 wins"));
+    actions.appendChild(el("button", { class: "small secondary", onclick: onDraw }, "Draw"));
+    actions.appendChild(el("button", { class: "small", onclick: onP2 }, "P2 wins"));
+  } else {
+    let badge = "win";
+    let label = "—";
+    if (isDraw) { badge = "draw"; label = "Draw"; }
+    else if (isP1Winner) { badge = "win"; label = m.p1.name + " won"; }
+    else if (isP2Winner) { badge = "win"; label = m.p2.name + " won"; }
+    actions.appendChild(el("span", { class: "badge " + badge }, label));
+    actions.appendChild(el("button", {
+      class: "small secondary",
+      onclick: () => { m.result = RESULT.PENDING; rollbackSwissStanding(m); renderAll(); },
+    }, "Undo"));
+  }
+  return el("div", { class: "match" },
+    el("div", { class: "pair" },
+      el("div", { class: p1Class }, m.p1.name),
+      el("div", { class: "vs" }, "vs"),
+      el("div", { class: p2Class }, m.p2.name),
+    ),
+    actions,
+  );
+}
+
+function rollbackSwissStanding(m) {
+  if (!app.swiss) return;
+  const s1 = app.swiss.standings.get(m.p1.id);
+  const s2 = app.swiss.standings.get(m.p2.id);
+  // Remove last opponent entries (the most recent)
+  s1.opponents.pop(); s2.opponents.pop();
+  // Subtract points/records by inspecting historical match
+  // Since we tracked changes incrementally, we need to recompute from scratch:
+  recomputeSwissStandings();
+}
+
+function recomputeSwissStandings() {
+  for (const s of app.swiss.standings.values()) {
+    s.points = 0; s.wins = 0; s.losses = 0; s.draws = 0; s.byes = 0; s.opponents = []; s.hadBye = false;
+  }
+  for (const r of app.swiss.rounds) {
+    for (const m of r.matches) {
+      if (m.isBye) {
+        if (m.p1) {
+          const s = app.swiss.standings.get(m.p1.id);
+          s.points += 1; s.byes += 1; s.hadBye = true;
+        }
+        continue;
+      }
+      if (m.result === RESULT.PENDING) continue;
+      const s1 = app.swiss.standings.get(m.p1.id);
+      const s2 = app.swiss.standings.get(m.p2.id);
+      s1.opponents.push(m.p2); s2.opponents.push(m.p1);
+      if (m.result === RESULT.P1_WIN) { s1.points += 1; s1.wins += 1; s2.losses += 1; }
+      else if (m.result === RESULT.P2_WIN) { s2.points += 1; s2.wins += 1; s1.losses += 1; }
+      else if (m.result === RESULT.DRAW) { s1.points += 0.5; s2.points += 0.5; s1.draws += 1; s2.draws += 1; }
+    }
+  }
+}
+
+// ---------- Bracket UI ----------
+
+function renderBracket() {
+  const sec = $("#bracket-section");
+  if (!app.bracket) { sec.hidden = true; return; }
+  sec.hidden = false;
+
+  const champ = app.bracket.champion();
+  const champArea = $("#champion-area");
+  champArea.innerHTML = "";
+  if (champ) {
+    champArea.appendChild(el("div", { class: "champion-banner" }, "Champion: " + champ.name));
+  }
+
+  renderBracketCols($("#wb-cols"), app.bracket.wb, "Winners");
+  renderBracketCols($("#lb-cols"), app.bracket.lb, "Losers");
+
+  const gfCol = $("#gf-col");
+  gfCol.innerHTML = "";
+  const gfRound = el("div", { class: "br-col" }, el("h3", {}, "Final"));
+  gfRound.appendChild(renderBracketMatch(app.bracket.gf));
+  gfCol.appendChild(gfRound);
+  if (app.bracket.gfReset) {
+    const resetRound = el("div", { class: "br-col" }, el("h3", {}, "Reset"));
+    resetRound.appendChild(renderBracketMatch(app.bracket.gfReset));
+    gfCol.appendChild(resetRound);
+  }
+}
+
+function renderBracketCols(host, rounds, prefix) {
+  host.innerHTML = "";
+  rounds.forEach((round, idx) => {
+    const col = el("div", { class: "br-col" }, el("h3", {}, `${prefix} R${idx + 1}`));
+    round.forEach(m => col.appendChild(renderBracketMatch(m)));
+    host.appendChild(col);
+  });
+  if (!rounds.length) host.appendChild(el("div", { class: "empty" }, "—"));
+}
+
+function renderBracketMatch(m) {
+  if (!m) return el("div", { class: "br-match bye" }, "—");
+  const root = el("div", { class: "br-match" + (m.result === RESULT.PENDING ? " pending" : "") + (m.isBye ? " bye" : "") });
+  const w = m.winner;
+  const slot = (player, isP1) => {
+    if (!player) return el("div", { class: "br-slot" }, el("span", { class: "pname" }, "—"));
+    const isWinner = w && w.id === player.id;
+    const isLoser = w && !isWinner;
+    const cls = "br-slot" + (isWinner ? " winner" : isLoser ? " loser" : "");
+    const node = el("div", { class: cls },
+      el("span", { class: "pname" }, (player.seed ? `(${player.seed}) ` : "") + player.name),
+    );
+    if (m.result === RESULT.PENDING && m.p1 && m.p2) {
+      node.appendChild(el("button", {
+        class: "small",
+        onclick: () => {
+          app.bracket.reportMatch(m, isP1 ? RESULT.P1_WIN : RESULT.P2_WIN);
+          renderAll();
+        },
+      }, "Win"));
+    }
+    return node;
+  };
+  if (m.isBye) {
+    root.appendChild(slot(m.p1 || m.p2, true));
+    root.appendChild(el("div", { class: "badge bye" }, "auto-advance"));
+    return root;
+  }
+  root.appendChild(slot(m.p1, true));
+  root.appendChild(slot(m.p2, false));
+  if (m.result !== RESULT.PENDING && m.p1 && m.p2) {
+    const undo = el("button", { class: "small secondary",
+      onclick: () => {
+        // Reset this match and clear downstream slots that referenced its winner
+        clearBracketMatchAndDownstream(m);
+        renderAll();
+      } }, "Undo");
+    root.appendChild(undo);
+  }
+  return root;
+}
+
+function clearBracketMatchAndDownstream(match) {
+  // Simplest correct approach: rebuild the bracket from the same player set and replay results except this one.
+  if (!app.bracket) return;
+  const players = app.bracket.players;
+  const reset = new DoubleEliminationStage(players, { name: app.bracket.name, grandFinalReset: app.bracket.grandFinalReset });
+  // Walk old bracket in chronological order; copy results into matching new positions, but skip the target match.
+  const oldMatches = app.bracket.allMatches();
+  const newMatches = reset.allMatches();
+  const oldToNew = new Map();
+  for (let i = 0; i < oldMatches.length; i++) oldToNew.set(oldMatches[i].id, newMatches[i]);
+  for (const old of oldMatches) {
+    if (old.id === match.id) continue;
+    if (old.result === RESULT.PENDING || old.result === RESULT.BYE) continue;
+    const n = oldToNew.get(old.id);
+    if (!n.p1 || !n.p2) continue; // upstream cleared this, skip
+    reset.reportMatch(n, old.result);
+  }
+  app.bracket = reset;
+}
+
+// ---------- Wiring ----------
+
+function startTournament() {
+  const text = $("#players-input").value;
+  const players = parsePlayers(text);
+  if (players.length < 2) { alert("Need at least 2 players"); return; }
+  const rounds = Math.max(1, parseInt($("#t-rounds").value, 10) || 3);
+  let advance = parseInt($("#t-advance").value, 10) || players.length;
+  advance = Math.max(2, Math.min(advance, players.length));
+  app.tournamentName = $("#t-name").value || "Tournament";
+  app.swiss = new SwissStage(players, { rounds, advance, name: app.tournamentName + " — Swiss" });
+  app.bracket = null;
+  app.swiss.pairNextRound();
+  renderAll();
+}
+
+function pairNextSwiss() {
+  if (!app.swiss) return;
+  if (app.swiss.rounds.length >= app.swiss.numRounds) return;
+  app.swiss.pairNextRound();
+  renderAll();
+}
+
+function startBracket() {
+  if (!app.swiss || !app.swiss.complete) return;
+  const qualifiers = app.swiss.qualifiers().map((p, i) => new Player(p.id, p.name, i + 1));
+  app.bracket = new DoubleEliminationStage(qualifiers, {
+    name: app.tournamentName + " — Playoffs",
+    grandFinalReset: $("#t-reset-final").checked,
+  });
+  renderAll();
+}
+
+function randomFillSwiss() {
+  if (!app.swiss) return;
+  for (const r of app.swiss.rounds) {
+    for (const m of r.matches) {
+      if (m.isBye || m.result !== RESULT.PENDING) continue;
+      app.swiss.reportMatch(m, Math.random() < 0.5 ? RESULT.P1_WIN : RESULT.P2_WIN);
+    }
+  }
+  renderAll();
+}
+
+function randomFillBracket() {
+  if (!app.bracket) return;
+  let safety = 200;
+  while (safety-- > 0) {
+    let found = false;
+    for (const m of app.bracket.allMatches()) {
+      if (m.result === RESULT.PENDING && m.p1 && m.p2) {
+        app.bracket.reportMatch(m, Math.random() < 0.5 ? RESULT.P1_WIN : RESULT.P2_WIN);
+        found = true;
+        break;
+      }
+    }
+    if (!found) break;
+  }
+  renderAll();
+}
+
+function shufflePlayers() {
+  const lines = $("#players-input").value.split(/\r?\n/).filter(Boolean);
+  for (let i = lines.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lines[i], lines[j]] = [lines[j], lines[i]];
+  }
+  $("#players-input").value = lines.join("\n");
+  renderPlayerPreview();
+}
+
+function fillDemo() {
+  $("#players-input").value = ["Alice","Bob","Carol","Dave","Eve","Frank","Grace","Henry","Iris"].join("\n");
+  renderPlayerPreview();
+}
+
+function exportJSON() {
+  const data = serialize();
+  if (!data) { alert("Nothing to export yet."); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (app.tournamentName || "tournament") + ".json";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+function importJSON() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+  input.onchange = () => {
+    const f = input.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (restoreState(data)) renderAll();
+        else alert("Invalid file");
+      } catch (e) { alert("Invalid JSON: " + e.message); }
+    };
+    r.readAsText(f);
+  };
+  input.click();
+}
+
+function resetEverything() {
+  if (!confirm("Wipe the current tournament?")) return;
+  app.swiss = null;
+  app.bracket = null;
+  clearState();
+  $("#swiss-section").hidden = true;
+  $("#bracket-section").hidden = true;
+}
+
+// ---------- Init ----------
+
+document.addEventListener("DOMContentLoaded", () => {
+  $("#players-input").addEventListener("input", renderPlayerPreview);
+  $("#btn-start").addEventListener("click", startTournament);
+  $("#btn-pair-next").addEventListener("click", pairNextSwiss);
+  $("#btn-start-bracket").addEventListener("click", startBracket);
+  $("#btn-random-fill").addEventListener("click", randomFillSwiss);
+  $("#btn-bracket-randomize").addEventListener("click", randomFillBracket);
+  $("#btn-shuffle").addEventListener("click", shufflePlayers);
+  $("#btn-fill").addEventListener("click", fillDemo);
+  $("#btn-export").addEventListener("click", exportJSON);
+  $("#btn-import").addEventListener("click", importJSON);
+  $("#btn-reset").addEventListener("click", resetEverything);
+
+  if (loadState()) renderAll();
+  else { fillDemo(); renderPlayerPreview(); }
+});
+</script>
+</body>
+</html>
